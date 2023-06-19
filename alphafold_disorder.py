@@ -49,6 +49,7 @@ def process_pdb(pdb_file, pdb_name, dssp_path='mkdssp'):
 
     # Calculate DSSP
     dssp = DSSP(structure[0], real_file, dssp=dssp_path)  # WARNING Check the path of mkdssp
+        # By defaul mkdssp binary file from PATH is used
     dssp_dict = dict(dssp)
 
     # Remove decompressed if necessary
@@ -79,6 +80,8 @@ def make_prediction(df, window_rsa=[25], thresholds_rsa=[0.581]):
         for th_rsa in thresholds_rsa:
             column_rsa_binding = 'binding-{}-{}'.format(w, th_rsa)
             df[column_rsa_binding] = df[column_rsa_window].copy()
+            
+            # df.loc gets rows based on condition inside (and can edit those)
             df.loc[df[column_rsa_window] > th_rsa, column_rsa_binding] = df.loc[
                                                                              df[column_rsa_window] > th_rsa, 'lddt'] * (
                                                                                  1 - th_rsa) + th_rsa
@@ -116,7 +119,8 @@ def parse_args():
 
 def process_file(f):
     result = pd.DataFrame([])
-    if f.stat().st_size > 0:  # and 'P52799' in file.stem:  # 'P13693', 'P52799', 'P0AE72', 'Q13148'
+    # stat.st_size gives the file size
+    if f.stat().st_size > 0:  # and 'P52799' in file.stem:  # 'P13693', 'P5279i9', 'P0AE72', 'Q13148'
         logging.debug('Processing PDB {}'.format(f))
         result = process_pdb(f, f.stem.split('.')[0], dssp_path=args.dssp)
     else:
