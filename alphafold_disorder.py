@@ -58,6 +58,8 @@ def process_pdb(pdb_file, pdb_name, dssp_path='mkdssp'):
     # Parse b-factor (pLDDT) and DSSP
     df = []
     for i, residue in enumerate(structure.get_residues()):
+        if not residue.has_id('CA') or not dssp_dict.get((residue.get_full_id()[2],residue.id)) :
+            continue
         lddt = residue['CA'].get_bfactor() / 100.0
         rsa = float(dssp_dict.get((residue.get_full_id()[2], residue.id))[3])
         ss = dssp_dict.get((residue.get_full_id()[2], residue.id))[2]
