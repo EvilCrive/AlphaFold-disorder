@@ -148,7 +148,7 @@ if __name__ == '__main__':
                 # process single file as input
                 processed_data = process_file(p)
                 if not processed_data.empty:
-                    data = data.append(processed_data)
+                    data = data._append(processed_data)
             else:
                 # process list of files as input (paths in list are relative)
                 with open(p, 'r') as list_file:
@@ -156,13 +156,13 @@ if __name__ == '__main__':
                         real_file = Path(p.parent, Path(file.strip()))
                         processed_data = process_file(real_file)
                         if not processed_data.empty:
-                            data = data.append(processed_data)
+                            data = data._append(processed_data)
         else:
             # input is a directory
             for file in p.iterdir():
                 processed_data = process_file(file)
                 if not processed_data.empty:
-                    data = data.append(processed_data)
+                    data = data._append(processed_data)
 
         # Write a TSV file
         fout_name = '{}/{}_data.tsv'.format(fout_path.parent, fout_path.stem)
@@ -178,7 +178,7 @@ if __name__ == '__main__':
     # Calculate predictions
     pred = pd.DataFrame()
     for name, pdb_data in data.groupby('name'):
-        pred = pred.append(make_prediction(pdb_data.copy(),
+        pred = pred._append(make_prediction(pdb_data.copy(),
                                            window_rsa=args.rsa_window,
                                            thresholds_rsa=args.rsa_threshold))
     logging.info('Prediction calculated')
