@@ -164,9 +164,12 @@ if __name__ == '__main__':
         else:
             # input is a directory
             for file in p.iterdir():
-                processed_data = process_file(file)
-                if not processed_data.empty:
-                    data = data._append(processed_data)
+                if ''.join(PurePath(file).suffixes) in ['.pdb', '.pdb.gz', '.cif', '.cif.gz']:
+                    processed_data = process_file(file)
+                    if not processed_data.empty:
+                        data = data._append(processed_data)
+                else:
+                    print("File", file.name, "not processed: it isn't a file of format [.pdb,.pdb.gz,.cif,.cif.gz]")
 
         # Write a TSV file
         fout_name = '{}/{}_data.tsv'.format(fout_path.parent, fout_path.stem)
