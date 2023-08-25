@@ -27,9 +27,8 @@ def is_gz_file(filepath):
     with open(filepath, 'rb') as test_f:
         return test_f.read(2) == b'\x1f\x8b'
 
-
-def process_pdb(pdb_file, pdb_name, dssp_path='mkdssp'):
-    # Decompress the structure if necessary
+def extract_pdb(pdb_file) :
+        # Decompress the structure if necessary
     real_file = pdb_file
     if is_gz_file(pdb_file):
         file_ext = Path(Path(pdb_file).stem).suffix
@@ -46,7 +45,11 @@ def process_pdb(pdb_file, pdb_name, dssp_path='mkdssp'):
     else:
         # assume mmCIF
         structure = FastMMCIFParser(QUIET=True).get_structure('', real_file)
+    return structure, real_file
 
+
+def process_pdb_dssp(pdb_file, pdb_name, dssp_path='mkdssp'):
+    structure, real_file = extract_pdb(pdb_file)
     # Calculate DSSP
     dssp = DSSP(structure[0], real_file, dssp=dssp_path)  # WARNING Check the path of mkdssp
         # By defaul mkdssp binary file from PATH is used
@@ -122,7 +125,7 @@ def process_file(f):
     # stat.st_size gives the file size
     if f.stat().st_size > 0:  # and 'P52799' in file.stem:  # 'P13693', 'P5279i9', 'P0AE72', 'Q13148'
         logging.debug('Processing PDB {}'.format(f))
-        result = process_pdb(f, f.stem.split('.')[0], dssp_path=args.dssp)
+        result = process_pdb_dssp(f, f.stem.split('.')[0], dssp_path=args.dssp)
     else:
         logging.debug('Empty file {}'.format(f))
     return result
