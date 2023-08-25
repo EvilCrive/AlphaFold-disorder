@@ -16,7 +16,9 @@ import tempfile
 import gzip
 import shutil
 import os
-
+import foldcomp
+from io import StringIO
+from utils_alphafold_disorder import get_sse_psea
 
 def moving_average(x, w):
     # https://stackoverflow.com/questions/13728392/moving-average-or-running-mean
@@ -26,6 +28,10 @@ def moving_average(x, w):
 def is_gz_file(filepath):
     with open(filepath, 'rb') as test_f:
         return test_f.read(2) == b'\x1f\x8b'
+
+def is_fcz_file(filepath) :
+    with open(filepath, 'rb') as test_f:
+        return test_f.read(5) == b'FCMP:'
 
 def extract_pdb(pdb_file) :
         # Decompress the structure if necessary
@@ -42,10 +48,37 @@ def extract_pdb(pdb_file) :
     file_ext = Path(real_file).suffix
     if file_ext in ['.pdb']:
         structure = PDBParser(QUIET=True).get_structure('', real_file)
-    else:
+    elif is_fcz_file(real_file):
+        with open(real_file, 'rb') as f :
+            (name, pdb_filevalue) = foldcomp.decompress(f)
+        structure = PDBParser(QUIET=True).get_structure('', StringIO(pdb_filevalue))
+    else :
         # assume mmCIF
         structure = FastMMCIFParser(QUIET=True).get_structure('', real_file)
     return structure, real_file
+
+def process_pdb_psea(pdb_file) :
+    structure, real_file = extract_pdb(pdb_file)
+
+    _r_helix = (np.deg2rad(89-12), np.deg2rad(89+12))
+    _a_helix = (np.deg2rad(50-20), np.deg2rad(50+20))
+    _d2_helix = ((5.5-0.5), (5.5+0.5)) # Not used in the algorithm description
+    _d3_helix = ((5.3-0.5), (5.3+0.5))
+    _d4_helix = ((6.4-0.6), (6.4+0.6))
+
+    _r_strand = (np.deg2rad(124-14), np.deg2rad(124+14))
+    _a_strand = (np.deg2rad(-180), np.deg2rad(-125), np.deg2rad(145), np.deg2rad(180))
+    _d2_strand = ((6.7-0.6), (6.7+0.6))
+    _d3_strand = ((9.9-0.9), (9.9+0.9))
+    _d4_strand = ((12.4-1.1), (12.4+1.1))
+
+    sse = get_sse_psea(structure, add_short_contacts = True, move_end_hhem = True)
+
+    print(sse)
+    df = pd.DataFrame()
+    # create dataframe
+    return df
+
 
 
 def process_pdb_dssp(pdb_file, pdb_name, dssp_path='mkdssp'):
@@ -125,7 +158,8 @@ def process_file(f):
     # stat.st_size gives the file size
     if f.stat().st_size > 0:  # and 'P52799' in file.stem:  # 'P13693', 'P5279i9', 'P0AE72', 'Q13148'
         logging.debug('Processing PDB {}'.format(f))
-        result = process_pdb_dssp(f, f.stem.split('.')[0], dssp_path=args.dssp)
+        #result = process_pdb_dssp(f, f.stem.split('.')[0], dssp_path=args.dssp)
+        result = process_pdb_psea(f)
     else:
         logging.debug('Empty file {}'.format(f))
     return result
