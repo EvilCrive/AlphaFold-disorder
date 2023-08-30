@@ -77,6 +77,17 @@ def process_pdb_psea(pdb_file) :
     print(sse)
     df = pd.DataFrame()
     # create dataframe
+        # Parse b-factor (pLDDT) and DSSP
+    df = []
+    for i, residue in enumerate(structure.get_residues()):
+        if not residue.has_id('CA') or sse[i] == '' :
+            continue
+        lddt = residue['CA'].get_bfactor() / 100.0
+        rsa=0.5
+        #rsa = float(dssp_dict.get((residue.get_full_id()[2], residue.id))[3])
+        ss = sse[i]
+        df.append((pdb_name, i + 1, seq1(residue.get_resname()), lddt, 1 - lddt, rsa, ss))
+    df = pd.DataFrame(df, columns=['name', 'pos', 'aa', 'lddt', 'disorder', 'rsa', 'ss'])
     return df
 
 
@@ -158,8 +169,8 @@ def process_file(f):
     # stat.st_size gives the file size
     if f.stat().st_size > 0:  # and 'P52799' in file.stem:  # 'P13693', 'P5279i9', 'P0AE72', 'Q13148'
         logging.debug('Processing PDB {}'.format(f))
-        #result = process_pdb_dssp(f, f.stem.split('.')[0], dssp_path=args.dssp)
-        result = process_pdb_psea(f)
+        result = process_pdb_dssp(f, f.stem.split('.')[0], dssp_path=args.dssp)
+        #result = process_pdb_psea(f)
     else:
         logging.debug('Empty file {}'.format(f))
     return result
