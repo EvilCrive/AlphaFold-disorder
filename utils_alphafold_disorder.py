@@ -202,7 +202,7 @@ def calc_struct_mask(ca_coord, length, distances, angles, short_contacts = True)
         (ri >= _r_helix[0]) & (ri <= _r_helix[1]) & (ai >= _a_helix[0]) & (ai <= _a_helix[1])
         )
     
-    helix_mask = mask_consecutive(strict_helix, 5)
+    helix_mask = mask_consecutive(strict_helix, 4)
     helix_mask = extend_region(helix_mask, relaxed_helix)
     
     relaxed_strand = (d3i >= _d3_strand[0]) & (d3i <= _d3_strand[1])
@@ -222,7 +222,7 @@ def calc_struct_mask(ca_coord, length, distances, angles, short_contacts = True)
             ) 
         )
     
-    strand_mask = mask_consecutive(strict_strand, 4)
+    strand_mask = mask_consecutive(strict_strand, 3)
     
     if short_contacts :
         short_strand_mask = mask_regions_with_low_contacts(
@@ -235,13 +235,13 @@ def calc_struct_mask(ca_coord, length, distances, angles, short_contacts = True)
     return [helix_mask, strand_mask]
 
 def finalize_sse(ca_coord, length, novirtual_mask, helix_mask, strand_mask) :
-    sse = np.full(length, "c", dtype="U1")
-    sse[helix_mask] = "a"
-    sse[strand_mask] = "b"
+    sse = np.full(length, "C", dtype="U1") #c
+    sse[helix_mask] = "H"  #a
+    sse[strand_mask] = "E" #b
     sse[np.isnan(ca_coord).any(axis=-1)] = ""
     return sse[novirtual_mask]
 
-def get_sse_psea(structure, add_short_contacts = True, move_end_hhem = False) :
+def get_sse_psea(structure, add_short_contacts = True, move_end_hhem = True) :
     res_start_id, atom_array = get_res_start(structure, move_end_hhem)
     ca_coord, novirtual_mask = get_ca_coord(res_start_id, atom_array)
     length, [d2i, d3i, d4i, ri, ai] = calc_dist_angles(ca_coord)
@@ -279,7 +279,3 @@ def compare_sses(sse, dssp) :
         return round(counter1,4)
     else :
         return [counter1/countersize, counter2/countersize]
-        
-def open_foldcomp_files(fcz_file) :
-    (name, pdb_file) = foldcomp.decompress(fcz_file)
-    return PDBParser(QUIET=True).get_structure('', StringIO(pdb_file))

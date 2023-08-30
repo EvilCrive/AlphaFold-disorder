@@ -71,7 +71,7 @@ def process_pdb_psea(pdb_file, pdb_name) :
     _d3_strand = ((9.9-0.9), (9.9+0.9))
     _d4_strand = ((12.4-1.1), (12.4+1.1))
 
-    sse = get_sse_psea(structure, add_short_contacts = True, move_end_hhem = True)
+    sse = get_sse_psea(structure)
 
     
     df = pd.DataFrame()
