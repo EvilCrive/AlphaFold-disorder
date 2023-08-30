@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
-from Bio.PDB import PDBParser
+from Bio.PDB import PDBParser, DSSP
 from Bio.PDB.MMCIFParser import FastMMCIFParser
 from Bio.SeqUtils import seq1
-from Bio.PDB import DSSP
 import numpy as np
 import warnings
 import pandas as pd
@@ -57,7 +56,7 @@ def extract_pdb(pdb_file) :
         structure = FastMMCIFParser(QUIET=True).get_structure('', real_file)
     return structure, real_file
 
-def process_pdb_psea(pdb_file) :
+def process_pdb_psea(pdb_file, pdb_name) :
     structure, real_file = extract_pdb(pdb_file)
 
     _r_helix = (np.deg2rad(89-12), np.deg2rad(89+12))
@@ -74,7 +73,7 @@ def process_pdb_psea(pdb_file) :
 
     sse = get_sse_psea(structure, add_short_contacts = True, move_end_hhem = True)
 
-    print(sse)
+    
     df = pd.DataFrame()
     # create dataframe
         # Parse b-factor (pLDDT) and DSSP
@@ -170,14 +169,13 @@ def process_file(f):
     if f.stat().st_size > 0:  # and 'P52799' in file.stem:  # 'P13693', 'P5279i9', 'P0AE72', 'Q13148'
         logging.debug('Processing PDB {}'.format(f))
         result = process_pdb_dssp(f, f.stem.split('.')[0], dssp_path=args.dssp)
-        #result = process_pdb_psea(f)
+        #result = process_pdb_psea(f, f.stem.split('.')[0])
     else:
         logging.debug('Empty file {}'.format(f))
     return result
 
 
 if __name__ == '__main__':
-
     # parse command line arguments
     args = parse_args()
     fout_path = Path(args.out)
@@ -189,7 +187,6 @@ if __name__ == '__main__':
 
     # Disable pandas warnings
     warnings.simplefilter(action='ignore', category=FutureWarning)
-
     if args.in_struct:
         # Generate DSSP output from PDB files
         data = pd.DataFrame()
@@ -222,14 +219,14 @@ if __name__ == '__main__':
         # Write a TSV file
         fout_name = '{}/{}_data.tsv'.format(fout_path.parent, fout_path.stem)
         data.to_csv(fout_name, sep='\t', quoting=csv.QUOTE_NONE, index=False, float_format='%.3f')
-        logging.info('DSSP data written in {}'.format(fout_name))
+        logging.info('Secondary structure data written in {}'.format(fout_name))
     elif args.in_dssp:
         # Start from checkpoint file
         data = pd.read_csv(args.in_dssp, sep='\t')
         logging.info('DSSP data read from {}'.format(args.in_dssp))
     else:
         data = None
-
+        
     # Calculate predictions
     pred = pd.DataFrame()
     for name, pdb_data in data.groupby('name'):
