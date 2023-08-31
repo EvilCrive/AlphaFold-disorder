@@ -20,6 +20,9 @@ import foldcomp
 from io import StringIO
 from utils_alphafold_disorder import get_sse_psea
 from Bio.PDB.SASA import ShrakeRupley
+from Bio.Data.PDBData import residue_sasa_scales
+from Bio.PDB.Polypeptide import is_aa
+import time
 
 def moving_average(x, w):
     # https://stackoverflow.com/questions/13728392/moving-average-or-running-mean
@@ -75,18 +78,13 @@ def process_pdb_psea(pdb_file, pdb_name) :
 
     sse = get_sse_psea(structure)
 
-    
-    df = pd.DataFrame()
-    # create dataframe
-        # Parse b-factor (pLDDT) and DSSP
     df = []
+    ShrakeRupley().compute(structure, level="R")
     for i, residue in enumerate(structure.get_residues()):
-        if not residue.has_id('CA') or sse[i] == '' :
-            continue
+        if not is_aa(residue.resname) :
+        	continue
         lddt = residue['CA'].get_bfactor() / 100.0
-        rsa=0.5
-        ShrakeRupley().compute(structure, level="R")
-        #rsa = float(dssp_dict.get((residue.get_full_id()[2], residue.id))[3])
+        rsa = residue.sasa / residue_sasa_scales['Sander'][residue.resname]
         ss = sse[i]
         df.append((pdb_name, i + 1, seq1(residue.get_resname()), lddt, 1 - lddt, rsa, ss))
     df = pd.DataFrame(df, columns=['name', 'pos', 'aa', 'lddt', 'disorder', 'rsa', 'ss'])
@@ -171,8 +169,8 @@ def process_file(f):
     # stat.st_size gives the file size
     if f.stat().st_size > 0:  # and 'P52799' in file.stem:  # 'P13693', 'P5279i9', 'P0AE72', 'Q13148'
         logging.debug('Processing PDB {}'.format(f))
-        result = process_pdb_dssp(f, f.stem.split('.')[0], dssp_path=args.dssp)
-        #result = process_pdb_psea(f, f.stem.split('.')[0])
+        #result = process_pdb_dssp(f, f.stem.split('.')[0], dssp_path=args.dssp)
+        result = process_pdb_psea(f, f.stem.split('.')[0])
     else:
         logging.debug('Empty file {}'.format(f))
     return result
@@ -211,11 +209,14 @@ if __name__ == '__main__':
                             data = data._append(processed_data)
         else:
             # input is a directory
+            start_T = time.time()
             for file in p.iterdir():
                 if ''.join(PurePath(file).suffixes) in ['.pdb', '.pdb.gz', '.cif', '.cif.gz']:
                     processed_data = process_file(file)
                     if not processed_data.empty:
                         data = data._append(processed_data)
+                    print(file, time.time()-start_T)
+                    start_T = time.time()
                 else:
                     print("File", file.name, "not processed: it isn't a file of format [.pdb,.pdb.gz,.cif,.cif.gz]")
 
