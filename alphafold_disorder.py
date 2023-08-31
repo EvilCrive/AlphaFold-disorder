@@ -15,9 +15,11 @@ import tempfile
 import gzip
 import shutil
 import os
+
 import foldcomp
 from io import StringIO
 from utils_alphafold_disorder import get_sse_psea
+from Bio.PDB.SASA import ShrakeRupley
 
 def moving_average(x, w):
     # https://stackoverflow.com/questions/13728392/moving-average-or-running-mean
@@ -83,6 +85,7 @@ def process_pdb_psea(pdb_file, pdb_name) :
             continue
         lddt = residue['CA'].get_bfactor() / 100.0
         rsa=0.5
+        ShrakeRupley().compute(structure, level="R")
         #rsa = float(dssp_dict.get((residue.get_full_id()[2], residue.id))[3])
         ss = sse[i]
         df.append((pdb_name, i + 1, seq1(residue.get_resname()), lddt, 1 - lddt, rsa, ss))
