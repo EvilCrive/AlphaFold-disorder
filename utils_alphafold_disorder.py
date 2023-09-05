@@ -64,8 +64,9 @@ def get_ca_coord(res_starts_id, atom_array) :
     ca_coord = np.full((len(res_starts_id), 3), np.nan, dtype=np.float32)
     ca_indices = np.where(np.array([atom.name for atom in atom_array]) == "CA")[0]
     # actual CA coord assignment
-    ca_coord[np.searchsorted(res_starts_id, ca_indices,"right")-1] = \
-        [atom.coord for atom in atom_array if atom.name=="CA"]
+    if len(ca_indices) > 0 :
+        ca_coord[np.searchsorted(res_starts_id, ca_indices,"right")-1] = \
+            [atom.coord for atom in atom_array if atom.name=="CA"]
    
     diff1 = np.diff(np.array([atom.parent.id[1] for atom in atom_array]))
     disc_ids = np.where((diff1!=0) & (diff1 != 1))[0] + 1

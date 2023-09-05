@@ -177,6 +177,8 @@ def process_file(f):
 
 
 if __name__ == '__main__':
+    start_time = time.time()
+
     # parse command line arguments
     args = parse_args()
     fout_path = Path(args.out)
@@ -251,3 +253,4 @@ if __name__ == '__main__':
                 for name, pdb_pred in pred.groupby('name'):
                     fout.write('>' + name + '\n' + (pdb_pred['pos'].astype(str) + '\t' + pdb_pred['aa'] + '\t' + pdb_pred[method].round(3).astype(str) + '\t').str.cat(sep='\n') + '\n')
         logging.info('CAID prediction files written in {}/'.format(fout_path.parent))
+    print(time.time() - start_time) 
