@@ -15,6 +15,7 @@ import tempfile
 import gzip
 import shutil
 import os
+import json
 
 import foldcomp
 from io import StringIO
@@ -82,14 +83,27 @@ def process_pdb_psea(pdb_file, pdb_name) :
     ShrakeRupley().compute(structure, level="R")
     for i, residue in enumerate(structure.get_residues()):
         if not is_aa(residue.resname) :
-        	continue
+            continue
         lddt = residue['CA'].get_bfactor() / 100.0
         rsa = residue.sasa / residue_sasa_scales['Sander'][residue.resname]
         ss = sse[i]
         df.append((pdb_name, i + 1, seq1(residue.get_resname()), lddt, 1 - lddt, rsa, ss))
+    
     df = pd.DataFrame(df, columns=['name', 'pos', 'aa', 'lddt', 'disorder', 'rsa', 'ss'])
+    df = normalize_rsa(df)
     return df
 
+def normalize_rsa(df) :
+    with open('dict_max_rsa.json','r') as f :
+        dict_maxrsa = json.load(f)
+    list_newrsa = []
+    for i in range(len(df)) :
+        aa = df.at[i,'aa']
+        rsa = df.at[i, 'rsa']
+        list_newrsa.append(round(rsa/dict_maxrsa[aa],3))
+    df = df.drop('rsa', axis=1)
+    df.insert(5, 'rsa', list_newrsa)
+    return df
 
 
 def process_pdb_dssp(pdb_file, pdb_name, dssp_path='mkdssp'):
@@ -129,9 +143,8 @@ def make_prediction(df, window_rsa=[25], thresholds_rsa=[0.581]):
             df[column_rsa_binding] = df[column_rsa_window].copy()
             
             # df.loc gets rows based on condition inside (and can edit those)
-            df.loc[df[column_rsa_window] > th_rsa, column_rsa_binding] = df.loc[
-                                                                             df[column_rsa_window] > th_rsa, 'lddt'] * (
-                                                                                 1 - th_rsa) + th_rsa
+            df.loc[df[column_rsa_window] > th_rsa, column_rsa_binding] = \
+                df.loc[df[column_rsa_window] > th_rsa, 'lddt'] * (1 - th_rsa) + th_rsa
 
     return df
 
