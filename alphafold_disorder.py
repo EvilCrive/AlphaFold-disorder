@@ -100,7 +100,12 @@ def normalize_rsa(df) :
     for i in range(len(df)) :
         aa = df.at[i,'aa']
         rsa = df.at[i, 'rsa']
-        list_newrsa.append(round(rsa/dict_maxrsa[aa],3))
+        new_rsa = rsa
+        if aa in dict_maxrsa :
+            new_rsa = rsa/dict_maxrsa[aa]
+        if new_rsa > 1 :
+            new_rsa = 1.000
+        list_newrsa.append(round(new_rsa,3))
     df = df.drop('rsa', axis=1)
     df.insert(5, 'rsa', list_newrsa)
     return df
