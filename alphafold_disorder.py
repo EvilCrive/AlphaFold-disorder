@@ -21,7 +21,7 @@ import foldcomp
 from io import StringIO
 from utils_alphafold_disorder import get_sse_psea
 from Bio.PDB.SASA import ShrakeRupley
-from Bio.Data.PDBData import residue_sasa_scales
+from Bio.Data.PDBData import residue_sasa_scales, protein_letters_3to1
 from Bio.PDB.Polypeptide import is_aa
 import time
 
@@ -64,7 +64,9 @@ def extract_pdb(pdb_file) :
 
 def process_pdb_psea(pdb_file, pdb_name) :
     structure, real_file = extract_pdb(pdb_file)
-
+    with open('dict_max_rsa.json','r') as f :
+        dict_adhoc_factors = json.load(f)
+        
     _r_helix = (np.deg2rad(89-12), np.deg2rad(89+12))
     _a_helix = (np.deg2rad(50-20), np.deg2rad(50+20))
     _d2_helix = ((5.5-0.5), (5.5+0.5)) # Not used in the algorithm description
@@ -86,30 +88,12 @@ def process_pdb_psea(pdb_file, pdb_name) :
             continue
         lddt = residue['CA'].get_bfactor() / 100.0
         rsa = residue.sasa / residue_sasa_scales['Sander'][residue.resname]
+        rsa = rsa / dict_adhoc_factors[protein_letters_3to1[residue.resname]]
         ss = sse[i]
         df.append((pdb_name, i + 1, seq1(residue.get_resname()), lddt, 1 - lddt, rsa, ss))
     
     df = pd.DataFrame(df, columns=['name', 'pos', 'aa', 'lddt', 'disorder', 'rsa', 'ss'])
-    df = normalize_rsa(df)
     return df
-
-def normalize_rsa(df) :
-    with open('dict_max_rsa.json','r') as f :
-        dict_maxrsa = json.load(f)
-    list_newrsa = []
-    for i in range(len(df)) :
-        aa = df.at[i,'aa']
-        rsa = df.at[i, 'rsa']
-        new_rsa = rsa
-        if aa in dict_maxrsa :
-            new_rsa = rsa/dict_maxrsa[aa]
-        if new_rsa > 1 :
-            new_rsa = 1.000
-        list_newrsa.append(round(new_rsa,3))
-    df = df.drop('rsa', axis=1)
-    df.insert(5, 'rsa', list_newrsa)
-    return df
-
 
 def process_pdb_dssp(pdb_file, pdb_name, dssp_path='mkdssp'):
     structure, real_file = extract_pdb(pdb_file)
